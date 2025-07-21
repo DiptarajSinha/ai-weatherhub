@@ -1,4 +1,4 @@
-# Weatherly AI ☀️⚡️
+# AI Weather Hub ☀️⚡️
 
 A sleek, mobile-first weather application powered by OpenWeather API and Gemini AI. Instantly get precise weather updates, ask the built-in chatbot anything, and receive creative, weather-appropriate activity suggestions—all in an elegant, responsive UI.
 
