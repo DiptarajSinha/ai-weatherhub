@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App with Gemini AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* Modern gradient background */
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gradient-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+        }
+
+        /* Improved glass morphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Compact weather card */
+        .weather-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .weather-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Floating chat button */
+        .chat-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .chat-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.6);
+        }
+
+        /* Chat overlay for background click */
+        .chat-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 30;
+        }
+
+        .chat-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Enhanced chat widget */
+        #chat-widget {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 40;
+        }
+
+        /* Improved chat messages */
+        .chat-message {
+            animation: messageSlide 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 25px 25px 8px 25px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            margin-left: 20%;
+        }
+
+        .ai-message {
+            background: rgba(248, 250, 252, 0.95);
+            color: #374151;
+            border-radius: 25px 25px 25px 8px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            margin-right: 20%;
+        }
+
+        /* Better typing indicator */
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9CA3AF;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dot:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { 
+                transform: scale(0.8);
+                opacity: 0.5;
+            } 
+            40% { 
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        /* Enhanced activity cards */
+        .activity-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: cardAppear 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .activity-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes cardAppear {
+            from { opacity: 0; transform: translateY(30px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Custom scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.5);
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            #chat-widget {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: 75vh;
+                border-radius: 25px 25px 0 0;
+                max-width: none;
+            }
+            
+            .user-message, .ai-message {
+                margin-left: 0;
+                margin-right: 0;
+                max-width: 85%;
+            }
+            
+            .user-message {
+                align-self: flex-end;
+            }
+            
+            .ai-message {
+                align-self: flex-start;
+            }
+
+            .weather-card {
+                margin: 1rem;
+                max-height: 85vh;
+            }
+        }
+
+        /* Viewport height optimization */
+        @media (max-height: 700px) {
+            .weather-card {
+                padding: 1.5rem;
+                max-height: 90vh;
+            }
+            
+            .weather-icon {
+                font-size: 4rem !important;
+                margin: 1rem 0 !important;
+            }
+            
+            .temperature {
+                font-size: 3rem !important;
+            }
+        }
+
+        /* Loading animation */
+        .loading-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Button hover effects */
+        .btn-hover {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-hover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-hover:hover::before {
+            left: 100%;
+        }
+    </style>
+</head>
+<body class="gradient-bg flex items-center justify-center min-h-screen relative">
+
+    <!-- Chat Overlay for background click -->
+    <div id="chat-overlay" class="chat-overlay"></div>
+
+    <!-- Compact Weather Card Container -->
+    <div class="container max-w-lg w-11/12 md:w-full p-4 relative z-10">
+        <div class="weather-card rounded-3xl p-6 text-center">
+            <!-- Compact Location -->
+            <div class="mb-4">
+                <h1 id="location" class="text-xl md:text-2xl font-bold text-gray-800">
+                    <span class="loading-pulse">🌍 Getting location...</span>
+                </h1>
+            </div>
+            
+            <!-- Compact Weather Icon -->
+            <div id="weather-icon" class="weather-icon text-6xl md:text-7xl my-4 filter drop-shadow-lg transition-all duration-500 hover:scale-110">⛅</div>
+            
+            <!-- Compact Temperature -->
+            <div class="mb-4">
+                <div id="temperature" class="temperature text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">--°C</div>
+                <div id="description" class="text-lg text-gray-600 capitalize font-medium mt-1">Loading...</div>
+            </div>
+            
+            <!-- Compact Weather Details Grid -->
+            <div class="grid grid-cols-2 gap-3 mt-4 mb-6">
+                <div class="glass rounded-xl p-3 text-center hover:bg-white/25 transition-all duration-300">
+                    <div class="text-2xl mb-1">💧</div>
+                    <div class="text-xs font-medium text-gray-600 mb-1">Humidity</div>
+                    <div id="humidity" class="text-lg font-bold text-gray-800">--%</div>
+                </div>
+                <div class="glass rounded-xl p-3 text-center hover:bg-white/25 transition-all duration-300">
+                    <div class="text-2xl mb-1">💨</div>
+                    <div class="text-xs font-medium text-gray-600 mb-1">Wind</div>
+                    <div id="wind" class="text-lg font-bold text-gray-800">-- km/h</div>
+                </div>
+                <div class="glass rounded-xl p-3 text-center hover:bg-white/25 transition-all duration-300">
+                    <div class="text-2xl mb-1">📊</div>
+                    <div class="text-xs font-medium text-gray-600 mb-1">Pressure</div>
+                    <div id="pressure" class="text-lg font-bold text-gray-800">-- hPa</div>
+                </div>
+                <div class="glass rounded-xl p-3 text-center hover:bg-white/25 transition-all duration-300">
+                    <div class="text-2xl mb-1">🌡️</div>
+                    <div class="text-xs font-medium text-gray-600 mb-1">Feels Like</div>
+                    <div id="feels-like" class="text-lg font-bold text-gray-800">--°C</div>
+                </div>
+            </div>
+            
+            <!-- Error display -->
+            <div id="error" class="text-red-600 font-semibold mt-4 p-3 bg-red-50 rounded-xl border border-red-200 hidden text-sm"></div>
+            
+            <!-- Compact suggest activities button -->
+            <button id="suggest-activities" class="btn-hover w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 text-white font-bold py-4 px-6 rounded-2xl hover:from-purple-700 hover:via-blue-700 hover:to-purple-700 transition-all duration-300 shadow-2xl hover:shadow-purple-500/25 transform hover:scale-105 flex items-center justify-center gap-2">
+                <span class="text-xl">✨</span>
+                <span class="text-base">Get Activities</span>
+                <span class="text-xl">🎯</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Enhanced Chat Button -->
+    <button id="chat-button" class="chat-btn fixed bottom-6 right-6 p-5 rounded-full focus:outline-none focus:ring-4 focus:ring-purple-300 z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-7 h-7">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+        </svg>
+    </button>
+
+    <!-- Enhanced Chat Widget -->
+    <div id="chat-widget" class="fixed bottom-24 right-6 w-11/12 max-w-md h-3/5 max-h-[600px] rounded-3xl flex flex-col transform scale-95 opacity-0 translate-y-4 pointer-events-none">
+        <!-- Chat Header -->
+        <div class="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 text-white p-5 rounded-t-3xl flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">🤖</div>
+                    <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg">Weather Assistant</h3>
+                    <p class="text-xs opacity-90">Always here to help</p>
+                </div>
+            </div>
+            <button id="close-chat" class="text-white hover:text-gray-200 hover:rotate-90 transition-all duration-300 text-2xl font-light">×</button>
+        </div>
+
+        <!-- Chat Body -->
+        <div id="chat-body" class="flex-1 p-5 overflow-y-auto flex flex-col gap-3 bg-gradient-to-b from-gray-50/80 to-white/90 custom-scroll">
+            <div class="chat-message ai-message p-4 rounded-2xl">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">AI</div>
+                    <span class="font-semibold text-gray-700 text-sm">Weather Assistant</span>
+                    <span class="text-xs text-gray-500">now</span>
+                </div>
+                <p class="leading-relaxed text-sm">Hello! 👋 I'm your personal weather assistant. Ask me about current conditions, forecasts, or the best activities for today's weather!</p>
+            </div>
+        </div>
+
+        <!-- Enhanced Chat Input -->
+        <div class="p-5 bg-white/90 backdrop-blur-sm rounded-b-3xl border-t border-gray-200/50">
+            <div class="flex items-center gap-2 bg-gray-100/70 rounded-2xl p-2 border border-gray-200/50">
+                <input type="text" id="chat-input" placeholder="Ask about weather..." class="flex-1 p-3 bg-transparent border-none focus:outline-none text-gray-700 placeholder-gray-500 font-medium text-sm">
+                <button id="send-message" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 rounded-xl hover:from-purple-700 hover:to-blue-700 focus:outline-none transition-all duration-200 transform hover:scale-105 shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Enhanced Activity Suggestions Modal -->
+    <div id="activities-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transform scale-110 opacity-0 pointer-events-none z-50">
+        <div class="bg-white/96 backdrop-blur-2xl rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] border border-white/30">
+            <div class="p-6 border-b border-gray-200/50 bg-gradient-to-r from-purple-50/80 to-blue-50/80 rounded-t-3xl">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-2xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Perfect Activities</h3>
+                        <p class="text-gray-600 text-base mt-1">Tailored for your current weather</p>
+                    </div>
+                    <button id="close-activities-modal" class="text-gray-500 hover:text-gray-800 hover:rotate-90 transition-all duration-300 text-3xl font-light">×</button>
+                </div>
+            </div>
+            <div id="activities-content" class="p-6 overflow-y-auto custom-scroll flex-1">
+                <div class="text-center p-12">
+                    <div class="loading-pulse text-6xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold text-gray-700 mb-2">Crafting Perfect Activities</h3>
+                    <p class="text-gray-600">Analyzing your weather to suggest amazing activities...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced JavaScript with background click functionality
+        const weatherIconEl = document.getElementById('weather-icon');
+        const temperatureEl = document.getElementById('temperature');
+        const descriptionEl = document.getElementById('description');
+        const locationEl = document.getElementById('location');
+        const humidityEl = document.getElementById('humidity');
+        const windEl = document.getElementById('wind');
+        const pressureEl = document.getElementById('pressure');
+        const feelsLikeEl = document.getElementById('feels-like');
+        const errorEl = document.getElementById('error');
+        let currentWeatherData = {};
+
+        const chatButton = document.getElementById('chat-button');
+        const chatWidget = document.getElementById('chat-widget');
+        const chatOverlay = document.getElementById('chat-overlay');
+        const closeChatButton = document.getElementById('close-chat');
+        const sendMessageButton = document.getElementById('send-message');
+        const chatInput = document.getElementById('chat-input');
+        const chatBody = document.getElementById('chat-body');
+
+        const suggestActivitiesButton = document.getElementById('suggest-activities');
+        const activitiesModal = document.getElementById('activities-modal');
+        const closeActivitiesModalButton = document.getElementById('close-activities-modal');
+        const activitiesContent = document.getElementById('activities-content');
+
+        const OPENWEATHER_API_KEY = 'a8ae05971b5e2d4ddf41723ccc995d6e';
+        const GEMINI_API_KEY = "AIzaSyCiSXfokJqJeok6hyQA0dtIz5oZ6OyHehU";
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const weatherEmojis = {
+            'Clear': '☀️', 'Clouds': '☁️', 'Rain': '🌧️', 'Drizzle': '🌦️',
+            'Thunderstorm': '⛈️', 'Snow': '❄️', 'Mist': '🌫️', 'Fog': '🌫️', 'Haze': '🌫️'
+        };
+
+        // Enhanced Gemini API with better prompt engineering
+        async function getGeminiResponse(prompt, isActivityRequest = false) {
+            const payload = { 
+                contents: [{ 
+                    role: "user", 
+                    parts: [{ text: prompt }] 
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: isActivityRequest ? 1000 : 500,
+                }
+            };
+            
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                }
+                return isActivityRequest ? 
+                    "I'm having trouble generating activities right now. Please try again!" :
+                    "I'm sorry, I couldn't process that request. Please try again! 😊";
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                return isActivityRequest ?
+                    "Unable to generate activities at the moment. Please check your connection and try again." :
+                    "I'm having connectivity issues. Please try again in a moment! 🌐";
+            }
+        }
+
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+            setTimeout(() => errorEl.classList.add('hidden'), 6000);
+        }
+
+        function clearError() {
+            errorEl.classList.add('hidden');
+        }
+
+        function getWeather(lat, lon) {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OPENWEATHER_API_KEY}`;
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Weather data unavailable');
+                    return response.json();
+                })
+                .then(data => {
+                    clearError();
+                    currentWeatherData = data;
+                    
+                    // Enhanced weather display
+                    locationEl.innerHTML = `📍 ${data.name}, ${data.sys.country}`;
+                    temperatureEl.textContent = `${Math.round(data.main.temp)}°C`;
+                    descriptionEl.textContent = data.weather[0].description;
+                    humidityEl.textContent = `${data.main.humidity}%`;
+                    windEl.textContent = `${(data.wind.speed * 3.6).toFixed(1)} km/h`;
+                    pressureEl.textContent = `${data.main.pressure} hPa`;
+                    feelsLikeEl.textContent = `${Math.round(data.main.feels_like)}°C`;
+                    
+                    const weatherMain = data.weather[0].main;
+                    weatherIconEl.textContent = weatherEmojis[weatherMain] || '⛅';
+                })
+                .catch(error => {
+                    showError('Unable to fetch weather data. Please try again later.');
+                    console.error(error);
+                });
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => getWeather(position.coords.latitude, position.coords.longitude),
+                    error => {
+                        showError('Location access denied. Showing weather for London.');
+                        getWeather(51.5072, -0.1276);
+                    }
+                );
+            } else {
+                showError('Geolocation not supported. Showing weather for London.');
+                getWeather(51.5072, -0.1276);
+            }
+        }
+
+        // Enhanced chat functionality with background click to close[1][2]
+        const toggleChat = (show) => {
+            if (show) {
+                chatWidget.classList.remove('scale-95', 'opacity-0', 'translate-y-4', 'pointer-events-none');
+                chatWidget.classList.add('scale-100');
+                chatOverlay.classList.add('active');
+                chatButton.style.transform = 'scale(0)';
+                setTimeout(() => chatInput.focus(), 300);
+            } else {
+                chatWidget.classList.add('scale-95', 'opacity-0', 'translate-y-4', 'pointer-events-none');
+                chatWidget.classList.remove('scale-100');
+                chatOverlay.classList.remove('active');
+                chatButton.style.transform = 'scale(1)';
+            }
+        };
+
+        chatButton.addEventListener('click', () => toggleChat(true));
+        closeChatButton.addEventListener('click', () => toggleChat(false));
+        
+        // Background click to close chat
+        chatOverlay.addEventListener('click', () => toggleChat(false));
+
+        const addMessage = (text, sender, isTyping = false) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', `${sender}-message`, 'p-4', 'rounded-2xl');
+            
+            if (isTyping) {
+                messageElement.id = 'typing-indicator';
+                messageElement.innerHTML = `
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">AI</div>
+                        <span class="font-semibold text-gray-700 text-sm">Typing...</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>`;
+            } else if (sender === 'user') {
+                messageElement.innerHTML = `
+                    <div class="flex items-center gap-2 mb-2 justify-end">
+                        <span class="text-xs text-white/80">now</span>
+                        <span class="font-semibold text-white/90 text-sm">You</span>
+                        <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-sm">👤</div>
+                    </div>
+                    <p class="leading-relaxed text-sm">${text}</p>`;
+            } else {
+                const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                messageElement.innerHTML = `
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">AI</div>
+                        <span class="font-semibold text-gray-700 text-sm">Weather Assistant</span>
+                        <span class="text-xs text-gray-500">${time}</span>
+                    </div>
+                    <p class="leading-relaxed text-sm">${text}</p>`;
+            }
+            
+            chatBody.appendChild(messageElement);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        };
+
+        const handleSendMessage = async () => {
+            const messageText = chatInput.value.trim();
+            if (messageText === '') return;
+
+            addMessage(messageText, 'user');
+            chatInput.value = '';
+            addMessage('', 'ai', true);
+
+            const weatherContext = currentWeatherData.name ? 
+                `Current weather in ${currentWeatherData.name}: ${Math.round(currentWeatherData.main.temp)}°C, ${currentWeatherData.weather[0].description}, humidity ${currentWeatherData.main.humidity}%, wind ${(currentWeatherData.wind.speed * 3.6).toFixed(1)} km/h, pressure ${currentWeatherData.main.pressure} hPa, feels like ${Math.round(currentWeatherData.main.feels_like)}°C.` : 
+                'Weather data is still loading.';
+            
+            const prompt = `You are a friendly, helpful weather assistant. Be conversational, informative, and concise. Use appropriate emojis. Current context: ${weatherContext}
+
+User question: "${messageText}"
+
+Provide a helpful response about weather, forecasts, clothing recommendations, or activities. Keep responses under 100 words and engaging.`;
+            
+            const aiResponse = await getGeminiResponse(prompt, false);
+            document.getElementById('typing-indicator')?.remove();
+            addMessage(aiResponse, 'ai');
+        };
+
+        sendMessageButton.addEventListener('click', handleSendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+            }
+        });
+
+        // Enhanced activity suggestions with proper content filtering
+        const toggleActivitiesModal = (show) => {
+            if (show) {
+                activitiesModal.classList.remove('scale-110', 'opacity-0', 'pointer-events-none');
+                activitiesModal.classList.add('scale-100');
+            } else {
+                activitiesModal.classList.add('scale-110', 'opacity-0', 'pointer-events-none');
+                activitiesModal.classList.remove('scale-100');
+            }
+        };
+
+        const handleSuggestActivities = async () => {
+            if (!currentWeatherData.name) {
+                showError("Please wait for weather data to load first.");
+                return;
+            }
+            
+            toggleActivitiesModal(true);
+            
+            const temp = Math.round(currentWeatherData.main.temp);
+            const condition = currentWeatherData.weather[0].description;
+            const humidity = currentWeatherData.main.humidity;
+            const windSpeed = (currentWeatherData.wind.speed * 3.6).toFixed(1);
+            const location = currentWeatherData.name;
+
+            // Enhanced prompt with strict instructions for relevant content only
+            const prompt = `Create exactly 3 weather-specific activity suggestions for ${location} with current conditions: ${temp}°C, ${condition}, ${humidity}% humidity, ${windSpeed} km/h wind.
+
+STRICT REQUIREMENTS:
+- Only suggest activities that are DIRECTLY suitable for the current weather conditions
+- Each activity must be realistic and doable in ${location}
+- NO irrelevant content, explanations about programming, HTML, or technical details
+- Focus purely on fun, practical activities
+
+Format as clean HTML using this exact structure for each activity:
+
+<div class="activity-card rounded-2xl p-5 mb-5 border-2 border-transparent hover:border-purple-200">
+    <div class="flex items-center gap-3 mb-3">
+        <span class="text-3xl">[WEATHER-APPROPRIATE EMOJI]</span>
+        <h3 class="text-xl font-bold text-gray-800">[ACTIVITY TITLE]</h3>
+    </div>
+    <p class="text-gray-600 leading-relaxed mb-3">[ENGAGING DESCRIPTION 2-3 sentences]</p>
+    <div class="bg-purple-50 rounded-xl p-3">
+        <p class="text-purple-700 font-semibold text-sm">Perfect for this weather because: [SPECIFIC REASON]</p>
+    </div>
+</div>
+
+Make activities creative, location-appropriate, and weather-specific. NO technical content whatsoever.`;
+
+            try {
+                const suggestions = await getGeminiResponse(prompt, true);
+                
+                // Filter out any irrelevant content
+                const cleanedSuggestions = suggestions                   
+                    .replace(/```/gi, '')
+                    .replace(/Key improvements.*$/gi, '')
+                    .replace(/Tailwind CSS.*$/gi, '')
+                    .replace(/HTML Structure.*$/gi, '')
+                    .trim();
+                
+                activitiesContent.innerHTML = cleanedSuggestions;
+            } catch (error) {
+                activitiesContent.innerHTML = `
+                    <div class="text-center p-12">
+                        <div class="text-6xl mb-4">😞</div>
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">Oops! Something went wrong</h3>
+                        <p class="text-gray-600">Unable to generate activities right now. Please try again!</p>
+                    </div>`;
+            }
+        };
+
+        suggestActivitiesButton.addEventListener('click', handleSuggestActivities);
+        closeActivitiesModalButton.addEventListener('click', () => toggleActivitiesModal(false));
+
+        // Close modals when clicking outside
+        activitiesModal.addEventListener('click', (e) => {
+            if (e.target === activitiesModal) toggleActivitiesModal(false);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (!chatWidget.classList.contains('pointer-events-none')) {
+                    toggleChat(false);
+                }
+                if (!activitiesModal.classList.contains('pointer-events-none')) {
+                    toggleActivitiesModal(false);
+                }
+            }
+        });
+
+        // Initialize app
+        getLocation();
+
+        // Add welcome suggestions after weather loads
+        setTimeout(() => {
+            if (currentWeatherData.name) {
+                addMessage(`Great! I can see it's ${Math.round(currentWeatherData.main.temp)}°C in ${currentWeatherData.name}. Here's what you can ask me:\n\n🌤️ "What should I wear today?"\n⛈️ "Will it rain later?"\n🏃‍♂️ "Good weather for running?"\n🌡️ "How's the air quality?"`, 'ai');
+            }
+        }, 4000);
+    </script>
+</body>
+</html>
