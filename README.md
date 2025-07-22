@@ -13,7 +13,7 @@ A sleek, weather web-app powered by OpenWeather API and Gemini AI. Instantly get
 
 ## 🖼️ Preview
 
-![Weatherly AI App Preview](YOUR_SCREENSHOT_IMAGE_URL)
+![AI Weather Hub Preview](ai-weather-hub.png)
 
 ## 📦 Installation & Usage
 
